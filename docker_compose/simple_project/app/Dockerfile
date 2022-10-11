@@ -15,12 +15,10 @@ COPY run_uwsgi.sh run_uwsgi.sh
 COPY requirements.txt requirements.txt
 COPY uwsgi/uwsgi.ini uwsgi.ini
 
-RUN  pip install --upgrade pip \
-     && pip install -r requirements.txt
+RUN  pip install --upgrade pip && \
+     pip install -r requirements.txt --no-cache-dir
 
 COPY . .
-
-RUN python manage.py collectstatic --no-input
 
 EXPOSE 8000
 

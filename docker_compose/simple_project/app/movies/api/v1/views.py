@@ -1,16 +1,18 @@
-from django.http import Http404
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.http import JsonResponse
 from django.db.models import Q
 from django.views.generic.list import BaseListView
 from django.views.generic.detail import BaseDetailView
-
-from movies.models import Filmwork
+from movies.models import Filmwork, PersonFilmwork
 
 
 class MoviesApiMixin:
     model = Filmwork
     http_method_names = ['get']
+
+    def _aggregate_person(self, role):
+        return ArrayAgg("persons__full_name", filter=Q(personfilmwork__role=role), distinct=True)
+
 
     def get_queryset(self):
         result = self.model.objects.prefetch_related(
@@ -25,14 +27,13 @@ class MoviesApiMixin:
             'type'
         ).annotate(
             genres=ArrayAgg("genres__name", distinct=True),
-            actors=ArrayAgg("persons__full_name", filter=Q(personfilmwork__role='actor'), distinct=True),  
-            directors=ArrayAgg("persons__full_name", filter=Q(personfilmwork__role='director'), distinct=True),  
-            writers=ArrayAgg("persons__full_name", filter=Q(personfilmwork__role='writer'), distinct=True),  
+            actors=self._aggregate_person(role=PersonFilmwork.PersonRole.ACTOR),
+            directors=self._aggregate_person(role=PersonFilmwork.PersonRole.DIRECTOR),
+            writers=self._aggregate_person(role=PersonFilmwork.PersonRole.WRITER),
         )
         return result
 
     def render_to_response(self, context, **response_kwargs):
-        print(context, 111)
         return JsonResponse(context) 
 
 class MoviesListApi(MoviesApiMixin, BaseListView):
@@ -47,14 +48,14 @@ class MoviesListApi(MoviesApiMixin, BaseListView):
             self.paginate_by,
         )
         return {
-            "count": paginator.count,
-            "total_pages": paginator.num_pages,
-            "prev": None if page.number == 1 else paginator.validate_number(page.number-1),
-            "next": None if page.number == paginator.num_pages else paginator.validate_number(page.number+1),
-            "results" : list(queryset)
+            'count': paginator.count,
+            'total_pages': paginator.num_pages,
+            'prev': page.previous_page_number() if page.has_previous() else None,
+            'next': page.next_page_number() if page.has_next() else None,
+            'results' : list(page.object_list)
         }
 
 class MoviesDetailApi(MoviesApiMixin, BaseDetailView):
 
     def get_context_data(self, **kwargs):
-        return self.object
+        return kwargs['object']

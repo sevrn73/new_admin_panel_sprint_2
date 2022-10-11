@@ -39,9 +39,9 @@ def conn_context(db_path: str):
 
 if __name__ == '__main__':
     dsl = {
-        'dbname': os.environ.get('DB_NAME'),
-        'user': os.environ.get('DB_USER'),
-        'password': os.environ.get('DB_PASSWORD'),
+        'dbname': os.environ.get('POSTGRES_DB'),
+        'user': os.environ.get('POSTGRES_USER'),
+        'password': os.environ.get('POSTGRES_PASSWORD'),
         'host': 'db',
         'port': 5432,
     }
